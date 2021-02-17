@@ -9,6 +9,10 @@ import torch
 import torch.nn as nn
 from torch.autograd import grad
 import torch.optim as optim
+import random
+
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define our neural network via PyTorch
 class PINet(nn.Module):
@@ -40,10 +44,10 @@ class PINet(nn.Module):
         x = activation(self.hidl7(x))
         x = activation(self.hidl8(x))
         x = activation(self.hidl9(x))
-        output = activation(self.outl(x))
+        output = self.outl(x)
         return output
 
-# Create the PINN from our Net class
+# Create the PINN from our PINet class
 model = PINet()
 
 # Define u(x, t) in Burger's equation as approximated by the PINN
@@ -61,25 +65,57 @@ def f(x, t):
     return f
 
 # Import the training data
+col = 10
 train = pd.read_csv('output/burgers_1D_train.csv')
 target = torch.tensor(train['u(x,t)']).float()
-X_train = torch.tensor(train['x'], requires_grad=True).float()
-T_train = torch.tensor(train['t'], requires_grad=True).float()
-zero = torch.zeros(len(train))
+X_train = torch.tensor(train['x']).float()
+T_train = torch.tensor(train['t']).float()
+X_f = (torch.rand(col) - 0.5)*2
+T_f = torch.rand(col)
+X_train.requires_grad=True
+T_train.requires_grad=True
+X_f.requires_grad=True
+T_f.requires_grad=True
+
 
 def F():
-    F = torch.zeros(len(train))
-    for i in range(len(train)):
-        F[i] = f(X_train[i].unsqueeze(0), T_train[i].unsqueeze(0))
+    F = torch.zeros(col)
+    for i in range(col):
+        F[i] = f(X_f[i].unsqueeze(0), T_f[i].unsqueeze(0))
     return F
 
-def optimize(epochs=100):
+def optimize(epochs=20000):
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0003)
     for i in range(epochs):
         optimizer.zero_grad()
         output = u_PINN(X_train, T_train).view(1,-1).squeeze(0)
-        loss = criterion(output, target)
+        MSE_u = criterion(output, target)
+        MSE_f = torch.mean(F()**2)
+        loss = MSE_u + MSE_f
         print(loss)
         loss.backward()
         optimizer.step()
+        
+def plot_PINN(t1=0, t2=0.25, t3=0.5, n_x = 201):
+    X_tens = torch.linspace(-1, 1, n_x)
+    t1_tens = torch.ones_like(X_tens)*t1
+    t2_tens = torch.ones_like(X_tens)*t2
+    t3_tens = torch.ones_like(X_tens)*t3
+    
+    Y1 = u_PINN(X_tens, t1_tens).detach().numpy().squeeze()
+    Y2 = u_PINN(X_tens, t2_tens).detach().numpy().squeeze()
+    Y3 = u_PINN(X_tens, t3_tens).detach().numpy().squeeze()
+    X = X_tens.numpy()
+    
+    fig = plt.figure()
+    plt.plot(X, Y1, label = f't = {t1}', linewidth=1)
+    plt.plot(X, Y2, label = f't = {t2}', linewidth=1)
+    plt.plot(X, Y3, label = f't = {t3}', linewidth=1)
+    plt.ylim(-1.25,1.25)
+    plt.legend()
+    plt.xlabel('x')
+    plt.ylabel('u(x,t)')
+    plt.title("PINN simulation of Burgers' Equation in 1D")
+    fig.savefig("output/burgers_1D_PINN.png")
+    plt.close

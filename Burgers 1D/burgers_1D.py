@@ -37,7 +37,7 @@ def u_anal(x, t):
         return -I1/I2
 
 # Plot u(x,t) for t1, t2, t3 over X
-def plot_anal(t1=0.25, t2=0.5, t3=0.75, n_x = 201):
+def plot_anal(t1=0, t2=0.25, t3=0.5, n_x = 201):
     X = np.linspace(-1, 1, n_x)
     
     for i in range(n_x):
