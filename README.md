@@ -6,7 +6,7 @@ The Navier-Stokes equations are an infamous set of partial differential equation
 
 A major recent development in the field is the introduction of the physics-informed neural network (PINN). PINNs employ AI deep learning to model and simulate non-linear PDEs such as the Burgers equation. It utilizes a special type of neural network that are regularized by physical laws (hence physics-informed) that has numerable advantages over traditional numerical simulation methods.
 
-This repository implements PINNs to solve Burgers' equation, primarily using the PyTorch machine learning library.
+This repository implements PINNs to solve Burgers' equation, primarily using the PyTorch library.
 
 Source(s):
 https://maziarraissi.github.io/PINNs/
